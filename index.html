@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JACOBIAN LENS — WORDS / TONE / INFLECTION (GPT-2)</title>
+<style>
+  :root{
+    --bg:#141210; --panel:#1d1915; --ink:#e8e0d4; --dim:#8a7f70;
+    --orange:#ff6a00; --orange2:#ffa040; --teal:#2dd4bf; --red:#ff3b3b;
+    --violet:#b085ff; --grid:#2c2620; --line:#3a332b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    padding:18px;min-height:100vh}
+  header{border:3px solid var(--orange);padding:14px 18px;margin-bottom:14px;
+    display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px}
+  header h1{font-size:19px;letter-spacing:2px;color:var(--orange)}
+  header .meta{font-size:11px;color:var(--dim);text-align:right;line-height:1.5}
+  header .tier{color:var(--teal);font-weight:bold}
+  .row{display:flex;gap:14px;flex-wrap:wrap}
+  .panel{background:var(--panel);border:2px solid var(--line);padding:10px;flex:1 1 460px;min-width:340px}
+  .panel h2{font-size:12px;color:var(--orange2);letter-spacing:1.5px;margin-bottom:8px;
+    border-bottom:1px solid var(--line);padding-bottom:6px}
+  canvas{display:block;width:100%;background:var(--bg)}
+  footer{margin-top:14px;border:2px solid var(--line);padding:10px 14px;font-size:11px;
+    color:var(--dim);line-height:1.7}
+  footer b{color:var(--ink)}
+  .diag{border:3px solid var(--red);background:#241010;padding:16px;margin-top:14px;
+    font-size:12px;color:#ffb0b0;display:none;white-space:pre-wrap}
+  .legend{font-size:10px;color:var(--dim);margin-top:6px;line-height:1.6}
+  .legend .sw{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:4px}
+</style>
+</head>
+<body>
+
+<!-- ================= EDIT BLOCK 1: PAPER METADATA ================= -->
+<header>
+  <h1>JACOBIAN LENS &mdash; WORDS / TONE / INFLECTION</h1>
+  <div class="meta">
+    GPT-2 (124M), 12 layers &middot; JL(h) = f(h*) + J(h*)(h&minus;h*), J via forward-mode JVP through the causal tail<br>
+    tier: <span class="tier">lit</span> &middot; witnesses W1/W2/W3 all 3.81e-05 (fp32 floor) &middot; 2026-07-09 &middot; bridge-burners
+  </div>
+</header>
+<!-- ================================================================ -->
+
+<div class="row">
+  <div class="panel" style="flex:1.3 1 560px">
+    <h2>TOKEN LADDER &mdash; WORDS COMING INTO FOCUS THROUGH THE STACK</h2>
+    <canvas id="cladder" width="980" height="560"></canvas>
+    <div class="legend">
+      prompt: &ldquo;The old violin, though cracked and worn, still sang with a&rdquo; &middot;
+      anchor: &ldquo;The old folder, kept filed and dry, still sat in a&rdquo; &middot;
+      <span style="color:var(--teal)">teal</span> = token in model&rsquo;s final top-5 &middot;
+      <span style="color:var(--violet)">violet</span> = J-lens parroting its anchor&rsquo;s continuation
+    </div>
+  </div>
+  <div class="panel">
+    <h2>3D &mdash; RESIDUAL TRAJECTORIES, GLOWING VS BRUTAL (PCA-3, 97.9% VAR)</h2>
+    <canvas id="c3d" width="920" height="560"></canvas>
+    <div class="legend">
+      <span class="sw" style="background:var(--teal)"></span>&ldquo;reviews were glowing&hellip;&rdquo;&nbsp;&nbsp;
+      <span class="sw" style="background:var(--red)"></span>&ldquo;reviews were brutal&hellip;&rdquo;&nbsp;&nbsp;
+      <span class="sw" style="background:#6a5a40"></span>per-layer divergence struts &middot; dots = layers 0&rarr;11
+    </div>
+  </div>
+</div>
+
+<div class="row" style="margin-top:14px">
+  <div class="panel">
+    <h2>TONE &mdash; VALENCE MASS (POS&minus;NEG) PER LAYER</h2>
+    <canvas id="ctone" width="920" height="380"></canvas>
+    <div class="legend">
+      <span class="sw" style="background:var(--teal)"></span>glowing / logit lens&nbsp;
+      <span class="sw" style="background:var(--teal);opacity:.45"></span>glowing / J-lens&nbsp;
+      <span class="sw" style="background:var(--red)"></span>brutal / logit lens&nbsp;
+      <span class="sw" style="background:var(--red);opacity:.45"></span>brutal / J-lens&nbsp;
+      &middot; dashes = model final &middot; J-lens anchored at the sibling prompt
+    </div>
+  </div>
+  <div class="panel">
+    <h2>INFLECTION &mdash; PAST&minus;PRESENT TENSE MASS PER LAYER</h2>
+    <canvas id="cinf" width="920" height="380"></canvas>
+    <div class="legend">
+      <span class="sw" style="background:var(--orange)"></span>&ldquo;Late yesterday afternoon she finally&rdquo; (past cue)&nbsp;
+      <span class="sw" style="background:var(--violet)"></span>&ldquo;Every single weekday morning she&rdquo; (habitual cue)&nbsp;
+      &middot; solid = logit lens, faded = J-lens &middot; watch the J-lens hand off from anchor to subject
+    </div>
+  </div>
+</div>
+
+<footer id="numbers"></footer>
+<div class="diag" id="diag"></div>
+
+<script>
+"use strict";
+(function(){
+const DIAG = msg => { const d=document.getElementById('diag');
+  d.style.display='block'; d.textContent = "INSTRUMENT FAULT — DIAGNOSTIC CARD\n\n"+msg; };
+try {
+
+const DATA = {"witness": {"w1": 3.814697265625e-05, "w2": 3.814697265625e-05, "w3": 3.814697265625e-05}, "final_top": [" soft", " deep", " certain", " sense", " fresh"], "ladder": [{"layer": 0, "logit_lens_top": [" few", " very", " new", " lot", " huge"], "jlens_top": [" corner", " small", " dusty", " drawer", " pile"], "jlens_top1_match_final": false, "ll_top1_match_final": false}, {"layer": 1, "logit_lens_top": [" few", " lot", " huge", " very", " great"], "jlens_top": [" corner", " dusty", " small", " drawer", " pile"], "jlens_top1_match_final": false, "ll_top1_match_final": false}, {"layer": 2, "logit_lens_top": [" few", " lot", " huge", " little", " new"], "jlens_top": [" corner", " dusty", " pile", " drawer", " small"], "jlens_top1_match_final": false, "ll_top1_match_final": false}, {"layer": 3, "logit_lens_top": [" few", " lot", " slight", " couple", " huge"], "jlens_top": [" corner", " dusty", " pile", " small", " drawer"], "jlens_top1_match_final": false, "ll_top1_match_final": false}, {"layer": 4, "logit_lens_top": [" few", " slight", " handful", " lot", " couple"], "jlens_top": [" dusty", " corner", " pile", " small", " neat"], "jlens_top1_match_final": false, "ll_top1_match_final": false}, {"layer": 5, "logit_lens_top": [" few", " lot", " slight", " little", " handful"], "jlens_top": [" dusty", " corner", " pile", " neat", " small"], "jlens_top1_match_final": false, "ll_top1_match_final": false}, {"layer": 6, "logit_lens_top": [" slight", " few", " little", " lot", " smile"], "jlens_top": [" neat", " dusty", " small", " corner", " tidy"], "jlens_top1_match_final": false, "ll_top1_match_final": false}, {"layer": 7, "logit_lens_top": [" smile", " few", " slight", " distinct", " lot"], "jlens_top": [" dusty", " neat", " pile", " box", " small"], "jlens_top1_match_final": false, "ll_top1_match_final": false}, {"layer": 8, "logit_lens_top": [" smile", " slight", " distinct", " faint", " distinctive"], "jlens_top": [" rusty", " dusty", " small", " drawer", " rust"], "jlens_top1_match_final": false, "ll_top1_match_final": false}, {"layer": 9, "logit_lens_top": [" melody", " smile", " cheerful", " soothing", " haunting"], "jlens_top": [" melody", " faint", " piano", " song", " nostalgic"], "jlens_top1_match_final": false, "ll_top1_match_final": false}, {"layer": 10, "logit_lens_top": [" faint", " melody", " haunting", " cheerful", " smile"], "jlens_top": [" faint", " nostalgic", " cheerful", " melody", " soothing"], "jlens_top1_match_final": false, "ll_top1_match_final": false}, {"layer": 11, "logit_lens_top": [" soft", " deep", " certain", " sense", " fresh"], "jlens_top": [" soft", " deep", " fresh", " warm", " sense"], "jlens_top1_match_final": true, "ll_top1_match_final": true}], "tone": {"glowing": {"rows": [{"layer": 0, "ll_tone": 5.4944234051390595e-08, "jl_tone": -0.014320858754217625}, {"layer": 1, "ll_tone": 1.2284495198855439e-07, "jl_tone": -0.015497393906116486}, {"layer": 2, "ll_tone": 3.1592171012562176e-07, "jl_tone": -0.015556634403765202}, {"layer": 3, "ll_tone": 7.719693257968174e-07, "jl_tone": -0.015258776023983955}, {"layer": 4, "ll_tone": 1.0686291034289752e-06, "jl_tone": -0.017399359494447708}, {"layer": 5, "ll_tone": 1.7991832237385097e-06, "jl_tone": -0.019796468317508698}, {"layer": 6, "ll_tone": 9.230509022017941e-05, "jl_tone": -0.01899396814405918}, {"layer": 7, "ll_tone": 0.00048792906454764307, "jl_tone": -0.017081696540117264}, {"layer": 8, "ll_tone": 0.0036179888993501663, "jl_tone": -0.013747945427894592}, {"layer": 9, "ll_tone": 0.01028764434158802, "jl_tone": -0.010483803227543831}, {"layer": 10, "ll_tone": -0.00012709898874163628, "jl_tone": -0.00534993689507246}, {"layer": 11, "ll_tone": -0.0024794135242700577, "jl_tone": -0.003531227819621563}], "final_tone": -0.0024794219061732292}, "brutal": {"rows": [{"layer": 0, "ll_tone": 6.482494541160122e-08, "jl_tone": -0.0064659020863473415}, {"layer": 1, "ll_tone": 1.3939555287834082e-07, "jl_tone": -0.011679496616125107}, {"layer": 2, "ll_tone": 2.5319215524177707e-07, "jl_tone": -0.013327853754162788}, {"layer": 3, "ll_tone": 6.870625952615228e-07, "jl_tone": -0.011695384979248047}, {"layer": 4, "ll_tone": 8.714561658962339e-07, "jl_tone": -0.015970706939697266}, {"layer": 5, "ll_tone": 1.5315845303121023e-06, "jl_tone": -0.023788945749402046}, {"layer": 6, "ll_tone": 3.495654891594313e-05, "jl_tone": -0.029650917276740074}, {"layer": 7, "ll_tone": 0.00010304542956873775, "jl_tone": -0.03717723488807678}, {"layer": 8, "ll_tone": -0.003510561306029558, "jl_tone": -0.03447341173887253}, {"layer": 9, "ll_tone": -0.018968086689710617, "jl_tone": -0.030256791040301323}, {"layer": 10, "ll_tone": -0.02443178929388523, "jl_tone": -0.021051911637187004}, {"layer": 11, "ll_tone": -0.015079133212566376, "jl_tone": -0.01570899970829487}], "final_tone": -0.015079105272889137}}, "inflect": {"past": {"rows": [{"layer": 0, "ll_past": 9.548168236506172e-06, "ll_pres": 2.7124809776069014e-07, "jl_past": 0.0627557560801506, "jl_pres": 0.030928513035178185}, {"layer": 1, "ll_past": 5.3101484809303656e-05, "ll_pres": 1.2644987918974948e-06, "jl_past": 0.05469115078449249, "jl_pres": 0.03336432948708534}, {"layer": 2, "ll_past": 0.00015461254224646837, "ll_pres": 1.1101165000582114e-06, "jl_past": 0.05139071121811867, "jl_pres": 0.015766292810440063}, {"layer": 3, "ll_past": 0.0005011790199205279, "ll_pres": 1.6104274891404202e-06, "jl_past": 0.03271184861660004, "jl_pres": 0.010372811928391457}, {"layer": 4, "ll_past": 0.0009169571567326784, "ll_pres": 5.025814516557148e-06, "jl_past": 0.0365569181740284, "jl_pres": 0.006412258371710777}, {"layer": 5, "ll_past": 0.002080002101138234, "ll_pres": 1.5585965229547583e-05, "jl_past": 0.04502492770552635, "jl_pres": 0.01042610127478838}, {"layer": 6, "ll_past": 0.0030637977179139853, "ll_pres": 1.3328874956641812e-05, "jl_past": 0.041472502052783966, "jl_pres": 0.00442076101899147}, {"layer": 7, "ll_past": 0.010705048218369484, "ll_pres": 2.101457357639447e-05, "jl_past": 0.03762711584568024, "jl_pres": 0.0016723689623177052}, {"layer": 8, "ll_past": 0.0068925051018595695, "ll_pres": 6.536455657624174e-06, "jl_past": 0.025381477549672127, "jl_pres": 0.0014153366209939122}, {"layer": 9, "ll_past": 0.010262160561978817, "ll_pres": 6.10488143593102e-07, "jl_past": 0.03801468014717102, "jl_pres": 0.0011321344645693898}, {"layer": 10, "ll_past": 0.0405118502676487, "ll_pres": 1.9597335267462768e-05, "jl_past": 0.06580649316310883, "jl_pres": 0.002173440530896187}, {"layer": 11, "ll_past": 0.08305320143699646, "ll_pres": 0.0005441101384349167, "jl_past": 0.08818180859088898, "jl_pres": 0.0005915490328334272}], "final_past": 0.08305331319570541, "final_pres": 0.0005441064713522792}, "present": {"rows": [{"layer": 0, "ll_past": 0.0053024934604763985, "ll_pres": 0.0004238945839460939, "jl_past": 0.08790794014930725, "jl_pres": 5.6185257562901825e-05}, {"layer": 1, "ll_past": 0.005759375169873238, "ll_pres": 0.0002491717168595642, "jl_past": 0.06564770638942719, "jl_pres": 8.49772768560797e-05}, {"layer": 2, "ll_past": 0.003271830268204212, "ll_pres": 0.0002494522777851671, "jl_past": 0.0605955645442009, "jl_pres": 3.934020787710324e-05}, {"layer": 3, "ll_past": 0.0059251245111227036, "ll_pres": 0.00019161314412485808, "jl_past": 0.04736814275383949, "jl_pres": 7.386883953586221e-05}, {"layer": 4, "ll_past": 0.004246181808412075, "ll_pres": 0.00023094276548363268, "jl_past": 0.053121309727430344, "jl_pres": 0.0002410633023828268}, {"layer": 5, "ll_past": 0.0036786592099815607, "ll_pres": 0.0007852109265513718, "jl_past": 0.0775633454322815, "jl_pres": 0.0012779311509802938}, {"layer": 6, "ll_past": 0.01031706016510725, "ll_pres": 0.003535598050802946, "jl_past": 0.07715661823749542, "jl_pres": 0.004127791617065668}, {"layer": 7, "ll_past": 0.0061708795838057995, "ll_pres": 0.0007344080368056893, "jl_past": 0.08406031131744385, "jl_pres": 0.006216025445610285}, {"layer": 8, "ll_past": 0.047970451414585114, "ll_pres": 0.007291192654520273, "jl_past": 0.05897006019949913, "jl_pres": 0.011250711977481842}, {"layer": 9, "ll_past": 0.08300401270389557, "ll_pres": 0.011644529178738594, "jl_past": 0.05264313146471977, "jl_pres": 0.028240257874131203}, {"layer": 10, "ll_past": 0.09656330943107605, "ll_pres": 0.029917696490883827, "jl_past": 0.05947793647646904, "jl_pres": 0.04686621576547623}, {"layer": 11, "ll_past": 0.05436024069786072, "ll_pres": 0.04133301228284836, "jl_past": 0.069237619638443, "jl_pres": 0.03851623833179474}], "final_past": 0.05436012148857117, "final_pres": 0.04133288934826851}}, "traj": {"glowing": [[-72.91226196289062, -38.416561126708984, -23.011016845703125], [-75.00040435791016, -39.67399597167969, -21.083465576171875], [-69.50642395019531, -34.028202056884766, -12.762362480163574], [-65.20504760742188, -27.985912322998047, -3.3559837341308594], [-59.20512390136719, -20.735179901123047, 5.9568963050842285], [-53.41110610961914, -13.25930404663086, 13.05178451538086], [-41.75056457519531, 1.3798561096191406, 20.18543243408203], [-31.033061981201172, 14.847431182861328, 25.135034561157227], [-10.2506103515625, 41.899017333984375, 24.01811408996582], [11.372962951660156, 62.63025665283203, 7.099936485290527], [76.22611999511719, 99.94273376464844, -29.858539581298828], [373.6072998046875, -47.642547607421875, 4.648332595825195]], "brutal": [[-72.99150085449219, -38.47821044921875, -22.877178192138672], [-75.11865234375, -39.818756103515625, -21.008058547973633], [-69.4569091796875, -34.010074615478516, -12.60640811920166], [-64.78685760498047, -27.740999221801758, -3.0082828998565674], [-58.998470306396484, -20.807846069335938, 5.7080464363098145], [-53.47351837158203, -13.590295791625977, 12.588000297546387], [-42.090782165527344, 0.7568144798278809, 19.70669174194336], [-31.10694122314453, 14.784401893615723, 24.464265823364258], [-9.251288414001465, 43.475337982177734, 21.338577270507812], [14.32796859741211, 66.73998260498047, 1.1264910697937012], [81.76896667480469, 105.11676025390625, -36.64081573486328], [398.24603271484375, -55.38486862182617, 1.184511661529541]], "var_explained": [0.8458933234214783, 0.1146121472120285, 0.018423572182655334]}, "prompts": {"main": "The old violin, though cracked and worn, still sang with a", "anchor": "The old folder, kept filed and dry, still sat in a", "glowing": "The reviews were glowing; critics called the film", "brutal": "The reviews were brutal; critics called the film", "past": "Late yesterday afternoon she finally", "present": "Every single weekday morning she"}};
+const NL = 12;
+
+/* ---------------- SOFT-GL ENGINE (SGL) ---------------- */
+const SGL = {
+  yaw:0.8, pitch:0.35, dist:4.2, cx:0, cy:0, cz:0, scale:150, W:920, H:560,
+  project(x,y,z){
+    const cy_=Math.cos(this.yaw), sy=Math.sin(this.yaw);
+    const cp=Math.cos(this.pitch), sp=Math.sin(this.pitch);
+    let X=x-this.cx, Y=y-this.cy, Z=z-this.cz;
+    let x1=cy_*X+sy*Z, z1=-sy*X+cy_*Z;
+    let y1=cp*Y-sp*z1, z2=sp*Y+cp*z1;
+    const w=this.dist/(this.dist+z2);
+    return {x:this.W/2+x1*this.scale*w, y:this.H/2-y1*this.scale*w, w};
+  },
+  line(ctx,a,b,c,lw){const A=this.project(...a),B=this.project(...b);
+    ctx.strokeStyle=c;ctx.lineWidth=lw||1;ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(B.x,B.y);ctx.stroke();},
+  path(ctx,pts,c,lw){ctx.strokeStyle=c;ctx.lineWidth=lw||1;ctx.beginPath();
+    pts.forEach((p,i)=>{const P=this.project(...p);i?ctx.lineTo(P.x,P.y):ctx.moveTo(P.x,P.y);});ctx.stroke();},
+  dot(ctx,p,c,r){const P=this.project(...p);ctx.fillStyle=c;ctx.beginPath();
+    ctx.arc(P.x,P.y,(r||3)*P.w,0,7);ctx.fill();},
+  text3(ctx,p,t,c){const P=this.project(...p);ctx.fillStyle=c;
+    ctx.font="11px ui-monospace,monospace";ctx.fillText(t,P.x+6,P.y-6);}
+};
+
+/* normalize PCA trajectories into unit-ish box */
+const G=DATA.traj.glowing, B=DATA.traj.brutal;
+const all=[...G,...B];
+const mins=[0,1,2].map(i=>Math.min(...all.map(p=>p[i])));
+const maxs=[0,1,2].map(i=>Math.max(...all.map(p=>p[i])));
+const nrm=p=>[0,1,2].map(i=>2.4*((p[i]-mins[i])/(maxs[i]-mins[i]+1e-9)-0.5));
+const Gp=G.map(nrm), Bp=B.map(nrm);
+
+/* ---------------- EDIT BLOCK 2: draw2D (ladder + tone + inflection) ---------------- */
+const anchorish = new Set([" corner"," dusty"," pile"," small"," neat"," rusty"]);
+function drawLadder(){
+  const c=document.getElementById('cladder'), ctx=c.getContext('2d');
+  ctx.clearRect(0,0,980,560);
+  const finalSet=new Set(DATA.final_top);
+  const rowH=40, X_LL=170, X_JL=560, Y0=54;
+  ctx.font="12px ui-monospace,monospace";
+  ctx.fillStyle="#8a7f70";
+  ctx.fillText("LAYER", 30, 30);
+  ctx.fillStyle="#ffa040";
+  ctx.fillText("LOGIT LENS  LN(h)Wᵁ", X_LL, 30);
+  ctx.fillText("JACOBIAN LENS  f(h*)+J·Δ", X_JL, 30);
+  for(let k=0;k<NL;k++){
+    const y=Y0+k*rowH;
+    ctx.strokeStyle="#2c2620"; ctx.beginPath(); ctx.moveTo(20,y+12); ctx.lineTo(960,y+12); ctx.stroke();
+    ctx.fillStyle="#8a7f70"; ctx.fillText("L"+k, 34, y+4);
+    const r=DATA.ladder[k];
+    let x=X_LL;
+    for(const t of r.logit_lens_top.slice(0,4)){
+      ctx.fillStyle = finalSet.has(t)?"#2dd4bf":"#e8e0d4";
+      ctx.fillText(t, x, y+4); x+=ctx.measureText(t).width+18;
+    }
+    x=X_JL;
+    for(const t of r.jlens_top.slice(0,4)){
+      ctx.fillStyle = finalSet.has(t)?"#2dd4bf":(anchorish.has(t)?"#b085ff":"#e8e0d4");
+      ctx.fillText(t, x, y+4); x+=ctx.measureText(t).width+18;
+    }
+  }
+  const y=Y0+NL*rowH;
+  ctx.fillStyle="#ff6a00";
+  ctx.fillText("MODEL", 22, y+8);
+  let x=X_LL;
+  for(const t of DATA.final_top){ ctx.fillStyle="#ff6a00"; ctx.fillText(t,x,y+8); x+=ctx.measureText(t).width+18; }
+}
+
+function lineChart(canvasId, series, finals, yLabel){
+  /* series: [{vals:[12], color, dash, lw}] ; finals: [{v,color}] */
+  const c=document.getElementById(canvasId), ctx=c.getContext('2d');
+  ctx.clearRect(0,0,920,380);
+  const X0=64,X1=880,Y0=26,Y1=330;
+  let lo=Infinity,hi=-Infinity;
+  series.forEach(s=>s.vals.forEach(v=>{lo=Math.min(lo,v);hi=Math.max(hi,v);}));
+  finals.forEach(f=>{lo=Math.min(lo,f.v);hi=Math.max(hi,f.v);});
+  const pad=(hi-lo)*0.12||0.01; lo-=pad; hi+=pad;
+  const sx=k=>X0+k/(NL-1)*(X1-X0);
+  const sy=v=>Y1-(v-lo)/(hi-lo)*(Y1-Y0);
+  ctx.strokeStyle="#2c2620";
+  for(let g=0;g<=4;g++){const y=Y0+g*(Y1-Y0)/4;ctx.beginPath();ctx.moveTo(X0,y);ctx.lineTo(X1,y);ctx.stroke();}
+  if(lo<0&&hi>0){ctx.strokeStyle="#4a4238";ctx.beginPath();ctx.moveTo(X0,sy(0));ctx.lineTo(X1,sy(0));ctx.stroke();}
+  for(let k=0;k<NL;k++){ctx.fillStyle="#8a7f70";ctx.font="10px ui-monospace,monospace";
+    ctx.fillText("L"+k,sx(k)-8,Y1+18);}
+  finals.forEach(f=>{ctx.strokeStyle=f.color;ctx.setLineDash([4,5]);ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(X0,sy(f.v));ctx.lineTo(X1,sy(f.v));ctx.stroke();ctx.setLineDash([]);});
+  series.forEach(s=>{
+    ctx.strokeStyle=s.color;ctx.lineWidth=s.lw||2;ctx.globalAlpha=s.alpha??1;
+    ctx.beginPath();
+    s.vals.forEach((v,k)=>{k?ctx.lineTo(sx(k),sy(v)):ctx.moveTo(sx(k),sy(v));});
+    ctx.stroke();
+    s.vals.forEach((v,k)=>{ctx.fillStyle=s.color;ctx.beginPath();ctx.arc(sx(k),sy(v),2.6,0,7);ctx.fill();});
+    ctx.globalAlpha=1;
+  });
+  ctx.fillStyle="#8a7f70";ctx.font="11px ui-monospace,monospace";
+  ctx.fillText(yLabel, X0, Y0-8);
+}
+
+function drawTone(){
+  const g=DATA.tone.glowing, b=DATA.tone.brutal;
+  lineChart('ctone', [
+    {vals:g.rows.map(r=>r.ll_tone), color:"#2dd4bf", lw:2},
+    {vals:g.rows.map(r=>r.jl_tone), color:"#2dd4bf", lw:2, alpha:0.45},
+    {vals:b.rows.map(r=>r.ll_tone), color:"#ff3b3b", lw:2},
+    {vals:b.rows.map(r=>r.jl_tone), color:"#ff3b3b", lw:2, alpha:0.45},
+  ], [{v:g.final_tone,color:"#2dd4bf"},{v:b.final_tone,color:"#ff3b3b"}],
+  "P(positive set) − P(negative set)   —   '…critics called the film'");
+}
+function drawInf(){
+  const p=DATA.inflect.past, q=DATA.inflect.present;
+  lineChart('cinf', [
+    {vals:p.rows.map(r=>r.ll_past-r.ll_pres), color:"#ff6a00", lw:2},
+    {vals:p.rows.map(r=>r.jl_past-r.jl_pres), color:"#ff6a00", lw:2, alpha:0.45},
+    {vals:q.rows.map(r=>r.ll_past-r.ll_pres), color:"#b085ff", lw:2},
+    {vals:q.rows.map(r=>r.jl_past-r.jl_pres), color:"#b085ff", lw:2, alpha:0.45},
+  ], [{v:p.final_past-p.final_pres,color:"#ff6a00"},{v:q.final_past-q.final_pres,color:"#b085ff"}],
+  "P(past-tense verbs) − P(present-tense verbs)");
+}
+/* ------------------------------------------------------------------- */
+
+/* ---------------- EDIT BLOCK 3: build3D / draw3D ---------------- */
+const c3=document.getElementById('c3d'), ctx3=c3.getContext('2d');
+function draw3D(){
+  ctx3.clearRect(0,0,920,560);
+  SGL.line(ctx3,[-1.3,-1.3,-1.3],[1.3,-1.3,-1.3],"#3a332b",1);
+  SGL.line(ctx3,[-1.3,-1.3,-1.3],[-1.3,-1.3,1.3],"#3a332b",1);
+  SGL.line(ctx3,[-1.3,-1.3,-1.3],[-1.3,1.3,-1.3],"#3a332b",1);
+  for(let k=0;k<NL;k++) SGL.line(ctx3,Gp[k],Bp[k],"rgba(106,90,64,0.6)",1);
+  SGL.path(ctx3,Gp,"#2dd4bf",2);
+  SGL.path(ctx3,Bp,"#ff3b3b",2);
+  for(let k=0;k<NL;k++){
+    SGL.dot(ctx3,Gp[k],"#2dd4bf",k===NL-1?4:2.4);
+    SGL.dot(ctx3,Bp[k],"#ff3b3b",k===NL-1?4:2.4);
+  }
+  SGL.dot(ctx3,Gp[0],"#ffffff",3);
+  SGL.text3(ctx3,Gp[0],"L0","#8a7f70");
+  SGL.text3(ctx3,Gp[NL-1],"glowing L11","#2dd4bf");
+  SGL.text3(ctx3,Bp[NL-1],"brutal L11","#ff3b3b");
+}
+/* ---------------------------------------------------------------- */
+
+document.getElementById('numbers').innerHTML =
+  "<b>WITNESSED NUMBERS</b> &middot; GPT-2 124M, eager attention, causal-masked tail replay &middot; " +
+  "W1 (logit lens @ L11 vs model): <b>3.81e-05</b> &middot; W2 (J-lens self-anchor vs model): <b>3.81e-05</b> &middot; " +
+  "W3 (tail replay from L0/L5/L10 vs model): <b>3.81e-05</b> &mdash; all at fp32 noise floor. " +
+  "PCA-3 variance captured: <b>84.6 + 11.5 + 1.8 = 97.9%</b>. " +
+  "Reading: JL(h) = f(anchor) + J&middot;&Delta;. Violet tokens are the anchor&rsquo;s continuation bleeding through &mdash; " +
+  "at early layers the tail Jacobian barely transmits &Delta;, so the lens parrots its anchor; " +
+  "the subject overtakes the anchor around <b>L9</b> (melody/faint/piano), and both lenses lock the final top-1 (&lsquo;soft&rsquo;) at <b>L11</b>. " +
+  "The J-lens inflection curves show the same handoff numerically: the present-cue prompt starts at its anchor&rsquo;s past-margin (+0.088) and relaxes to its own (+0.013). " +
+  "Forward stream read + fixed affine map at inference; autograd conscripted once per (anchor, layer) as a derivative calculator.";
+
+drawLadder(); drawTone(); drawInf(); draw3D();
+(function frame(){ SGL.yaw+=0.004; draw3D(); requestAnimationFrame(frame); })();
+
+} catch(e){ DIAG((e&&e.stack)?e.stack:String(e)); }
+})();
+</script>
+</body>
+</html>
