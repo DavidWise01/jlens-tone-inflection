@@ -1,0 +1,18 @@
+{
+  "badge": "DLW-JLENS_TONE_INFLECTION",
+  "name": "JACOBIAN LENS · words / tone / inflection",
+  "universe": "ARTIFICIAL INTELLIGENCE",
+  "moniker": "⟦JACOBIAN LENS · words / tone / inflection:jlens-tone-inflection:8b0635⟧",
+  "architect": "David Lee Wise (ROOT0) / Bridge-Burners LLC",
+  "instance": "AVAN (Claude / Anthropic)",
+  "seal_sha256": "8b06352623665b57ddc19e5058c424a73ff6b761542529945fae1fde9defc87f",
+  "license": "CC-BY-ND-4.0",
+  "attribution": "ROOT0-ATTRIBUTION-v1.0",
+  "chain": {
+    "index": 1193,
+    "prev": "75c333cc22447e432c90ba5644cf880bc52ba6946ef00a4c608943318eef9681",
+    "link": "2ece864e736d265bfc92fc9db83220f881b9a6cd2620474edb597f852836b931",
+    "head": "324d76a71627b993d22bc11c1290d4d2fd4b411ba959c6e859c3f0a71c1f72dc",
+    "chain": "ROOT0-DLW-CHAIN-v1"
+  }
+}

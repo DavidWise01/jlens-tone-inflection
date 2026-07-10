@@ -1,0 +1,9 @@
+ROOT0-DLW-CHAIN-v1
+index : 1193
+slug  : jlens-tone-inflection
+seal  : 8b06352623665b57ddc19e5058c424a73ff6b761542529945fae1fde9defc87f
+prev  : 75c333cc22447e432c90ba5644cf880bc52ba6946ef00a4c608943318eef9681
+link  : 2ece864e736d265bfc92fc9db83220f881b9a6cd2620474edb597f852836b931
+head  : 324d76a71627b993d22bc11c1290d4d2fd4b411ba959c6e859c3f0a71c1f72dc
+
+— the tether: link = sha256(index|slug|seal|prev). the chain head commits to the whole corpus.
